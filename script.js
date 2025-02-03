@@ -58,20 +58,22 @@ function setupMap() {
         zoom: 16
     });
 
+    // Add Navigation Control
     const nav = new mapboxgl.NavigationControl();
     map.addControl(nav);
 
+    // Fix: Correcting MapboxDirections instantiation
     var directions = new MapboxDirections({
-        accessToken: mapboxgl.accessToken
+        accessToken: mapboxgl.accessToken,
+        unit: 'metric', // Ensures directions are in metric (kilometers)
+        profile: 'mapbox/walking' // Optimized for pedestrian routes on campus
     });
     map.addControl(directions, 'top-left');
 
     // Custom buildings for local search
     var buildings = [
         { name: "Oastler Building", coordinates: [-1.777248233823057, 53.64469586451287] },
-        { name: "Spark Jones Building", coordinates: [-1.7786238150343348, 53.641289266906355] },
-        // { name: "Joseph Priestley Building", coordinates: [-1.779, 53.642] },
-        // { name: "Barbara Hepworth Building", coordinates: [-1.781, 53.646] }
+        { name: "Spark Jones Building", coordinates: [-1.7786238150343348, 53.641289266906355] }
     ];
 
     var geocoder = new MapboxGeocoder({
@@ -85,8 +87,11 @@ function setupMap() {
                     place_name: b.name,
                     geometry: { type: "Point", coordinates: b.coordinates }
                 }));
+            console.log("Custom Geocoder Results:", results); // Debugging
             return results;
-        }
+        },
+        // Prioritizing local results over global search
+        localGeocoderOnly: false
     });
 
     map.addControl(geocoder);
