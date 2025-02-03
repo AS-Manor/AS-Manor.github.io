@@ -58,48 +58,63 @@ function setupMap() {
         zoom: 16
     });
 
-    // Add Navigation Control
     const nav = new mapboxgl.NavigationControl();
     map.addControl(nav);
 
-    // Fix: Correcting MapboxDirections instantiation
     var directions = new MapboxDirections({
         accessToken: mapboxgl.accessToken,
-        unit: 'metric', // Ensures directions are in metric (kilometers)
-        profile: 'mapbox/walking' // Optimized for pedestrian routes on campus
+        unit: 'metric',
+        profile: 'mapbox/walking'
     });
     map.addControl(directions, 'top-left');
 
-    // Custom buildings for local search
+    // Custom university buildings
     var buildings = [
         { name: "Oastler Building", coordinates: [-1.777248233823057, 53.64469586451287] },
         { name: "Spark Jones Building", coordinates: [-1.7786238150343348, 53.641289266906355] },
-        { name: "Haslett Building", coordinates: [-1.7776790844775374, 53.64168058275733]},
-        { name: "3M Buckley Innovation Centre", coordinates: [-1.7769310878297153, 53.64164813611553]},
-        { name: "Harold Wilson Building", coordinates: [-1.778407563071558, 53.643590156964876]},
-        { name: "Richard Steinitz Building", coordinates: [-1.7778580836779672, 53.644232579148486]},
-        { name: "Charles Sikes Building", coordinates: [-1.7756093650634615, 53.64324677769629]}
+        { name: "Haslett Building", coordinates: [-1.7776790844775374, 53.64168058275733] },
+        { name: "3M Buckley Innovation Centre", coordinates: [-1.7769310878297153, 53.64164813611553] },
+        { name: "Harold Wilson Building", coordinates: [-1.778407563071558, 53.643590156964876] },
+        { name: "Richard Steinitz Building", coordinates: [-1.7778580836779672, 53.644232579148486] },
+        { name: "Charles Sikes Building", coordinates: [-1.7756093650634615, 53.64324677769629] }
     ];
 
+    // Add markers for each building
+    buildings.forEach(building => {
+        new mapboxgl.Marker()
+            .setLngLat(building.coordinates)
+            .setPopup(new mapboxgl.Popup().setText(building.name))
+            .addTo(map);
+    });
+
+    // Custom local geocoder function
+    function customGeocoder(query) {
+        console.log("Geocoder triggered:", query);
+        return buildings
+            .filter(b => b.name.toLowerCase().includes(query.toLowerCase()))
+            .map(b => ({
+                center: b.coordinates,
+                place_name: b.name,
+                geometry: { type: "Point", coordinates: b.coordinates }
+            }));
+    }
+
+    // Initialize geocoder
     var geocoder = new MapboxGeocoder({
         accessToken: mapboxgl.accessToken,
         mapboxgl: mapboxgl,
-        localGeocoder: function (query) {
-            var results = buildings
-                .filter(b => b.name.toLowerCase().includes(query.toLowerCase()))
-                .map(b => ({
-                    center: b.coordinates,
-                    place_name: b.name,
-                    geometry: { type: "Point", coordinates: b.coordinates }
-                }));
-            console.log("Custom Geocoder Results:", results); // Debugging
-            return results;
-        },
-        // Prioritizing local results over global search
-        localGeocoderOnly: false
+        localGeocoder: customGeocoder,
+        localGeocoderOnly: true, // Enforce only local search
+        placeholder: "Search campus buildings..."
     });
 
     map.addControl(geocoder);
+
+    // Center map on selected search result
+    geocoder.on('result', function (e) {
+        console.log("Selected:", e.result);
+        map.flyTo({ center: e.result.center, zoom: 18 });
+    });
 }
 
 // Initialize map at University of Huddersfield
