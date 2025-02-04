@@ -58,9 +58,11 @@ function setupMap() {
         zoom: 16
     });
 
+    // Add Navigation Controls
     const nav = new mapboxgl.NavigationControl();
     map.addControl(nav);
 
+    // Add Directions for Walking
     var directions = new MapboxDirections({
         accessToken: mapboxgl.accessToken,
         unit: 'metric',
@@ -68,7 +70,7 @@ function setupMap() {
     });
     map.addControl(directions, 'top-left');
 
-    // Custom university buildings
+    // Key University Buildings
     var buildings = [
         { name: "Oastler Building", coordinates: [-1.777248233823057, 53.64469586451287] },
         { name: "Spark Jones Building", coordinates: [-1.7786238150343348, 53.641289266906355] },
@@ -79,7 +81,7 @@ function setupMap() {
         { name: "Charles Sikes Building", coordinates: [-1.7756093650634615, 53.64324677769629] }
     ];
 
-    // Add markers for each building
+    // Add Markers for Buildings
     buildings.forEach(building => {
         new mapboxgl.Marker()
             .setLngLat(building.coordinates)
@@ -87,35 +89,48 @@ function setupMap() {
             .addTo(map);
     });
 
-    // Custom local geocoder function
+    // Custom Local Geocoder
     function customGeocoder(query) {
         console.log("Geocoder triggered:", query);
-        return buildings
-            .filter(b => b.name.toLowerCase().includes(query.toLowerCase()))
+
+        query = query.toLowerCase().trim(); // Normalize input
+
+        // Ignore searches with less than 3 characters
+        if (query.length < 3) return [];
+
+        var results = buildings
+            .filter(b => b.name.toLowerCase().includes(query))
             .map(b => ({
                 center: b.coordinates,
                 place_name: b.name,
                 geometry: { type: "Point", coordinates: b.coordinates }
             }));
+
+        console.log("Geocoder Results:", results);
+        return results;
     }
 
-    // Initialize geocoder
+    // Add Search Bar with Local Geocoder
     var geocoder = new MapboxGeocoder({
         accessToken: mapboxgl.accessToken,
         mapboxgl: mapboxgl,
         localGeocoder: customGeocoder,
-        localGeocoderOnly: true, // Enforce only local search
-        placeholder: "Search campus buildings..."
+        localGeocoderOnly: true, // Force local results only
+        marker: false, // Prevent Mapbox from auto-adding markers
+        zoom: 18, // Ensure zoom is correct
+        placeholder: "Search campus buildings...",
+        limit: 5 // Limits results for better UI
     });
 
     map.addControl(geocoder);
 
-    // Center map on selected search result
+    // Center Map on Selected Search Result
     geocoder.on('result', function (e) {
         console.log("Selected:", e.result);
         map.flyTo({ center: e.result.center, zoom: 18 });
     });
 }
 
-// Initialize map at University of Huddersfield
+// Initialize the Map
 setupMap();
+
